@@ -38,7 +38,8 @@ T_02 = T_03 #since no work or heat is involved in the diffuser
 
 
 A = 2*pi*ri*l
-#A = pi*ri*ri
+
+#need to estimate velocity at impeller tip in order to calculate T_2
 V2r = 10
 max_it = 10
 err = 0.01
