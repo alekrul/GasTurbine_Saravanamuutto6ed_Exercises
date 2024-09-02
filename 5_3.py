@@ -42,3 +42,29 @@ beta2_t = atan((Utip-deltaV)/V1)
 print("Beta 1 at tip:", degrees(beta1_t))
 print("Beta 2 at tip:", degrees(beta2_t))
 
+rroot = rtip*rt_ratio
+
+p_1 = p_a*((T_1/T_a)**aux)
+rho_1 = p_1*100/(T_1*R)
+
+m_dot = rho_1*V1*pi*(rtip**2 - rroot**2)
+
+print("Mass flow: ", m_dot)
+
+p_ratio = (1 + eta*deltaT/T_a)**aux
+
+W_req = m_dot*Utip*deltaV*work_done_factor
+
+print("Pressure ratio: ", p_ratio)
+print("Work required: ", W_req)
+
+Uroot = Utip*rt_ratio
+
+beta1_r = atan(Uroot/V1)
+
+deltaV_r = cp*deltaT/(work_done_factor*Uroot)
+
+beta2_r = atan((Uroot-deltaV_r)/V1)
+
+print("Beta 1 at root:", degrees(beta1_r))
+print("Beta 2 at root:", degrees(beta2_r))
