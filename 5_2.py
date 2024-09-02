@@ -1,6 +1,3 @@
-from math import *
-import numpy as np
-
 #recalculate the stage air angles for the same data as in the previous question for a stage with
 #50% reaction at all radii and compare the results with those for the free vortex design
 
