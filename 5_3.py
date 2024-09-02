@@ -33,5 +33,12 @@ Utip = sqrt((a*Mrel_tip)**2 - V1**2)
 
 rtip = Utip/(N*2*pi*(1/60))
 
-print(rtip)
+print("Tip radius:", rtip)
+
+deltaV = cp*deltaT/(work_done_factor*Utip)
+
+beta1_t = atan(Utip/V1)
+beta2_t = atan((Utip-deltaV)/V1)
+print("Beta 1 at tip:", degrees(beta1_t))
+print("Beta 2 at tip:", degrees(beta2_t))
 
