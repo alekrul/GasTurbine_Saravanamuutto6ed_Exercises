@@ -10,16 +10,6 @@ beta_2_m = radians(20.49)
 alpha_3_m = radians(10.0)
 beta_3_m = radians(54.96)
 
-#data from 7.2 exercise
-V3 = 275 #[m/s]
-Ur = 300 #[m/s]
-V1 = V3
-Ur = 300 #[m/s]
-eta_t = 0.88
-pr = 2
-T_01 = 1050 #[K]
-
-
 #constant
 cp = 1148
 gamma = 1.333
