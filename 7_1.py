@@ -31,10 +31,8 @@ R      = 287.0           # gas constant                   [J/kg.K]
 
 # Loss coefficients (temperature-loss definition, e.g. lambda_N = (T2 - T2')/(C2^2/2cp))
 lambda_N = 0.05          # nozzle loss coefficient        [-]
-lambda_R = 0.05          # rotor  loss coefficient        [-]  <-- set to your value
-# Alternatively, if you prefer to impose a stage total-to-total efficiency instead
-# of a rotor loss, set eta_s below to a number (e.g. 0.90); leave as None to use lambda_R.
-eta_s    = None          # stage total-to-total efficiency [-] or None
+lambda_R = 0.05          # rotor  loss coefficient        [-] 
+eta_s    = None          # stage total-to-total efficiency [-]
 
 n = gamma / (gamma - 1.0)   # isentropic exponent p/T grouping
 
