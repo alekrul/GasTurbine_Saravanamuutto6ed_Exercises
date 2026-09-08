@@ -27,6 +27,16 @@ alpha3 = radians(10.0)   # stage exit swirl angle         [deg]
 
 cp     = 1148.0          # specific heat, combustion gas  [J/kg.K]
 gamma  = 1.333           # ratio of specific heats        [-]
+R      = 287.0           # gas constant                   [J/kg.K]
+
+# Loss coefficients (temperature-loss definition, e.g. lambda_N = (T2 - T2')/(C2^2/2cp))
+lambda_N = 0.05          # nozzle loss coefficient        [-]
+lambda_R = 0.05          # rotor  loss coefficient        [-]  <-- set to your value
+# Alternatively, if you prefer to impose a stage total-to-total efficiency instead
+# of a rotor loss, set eta_s below to a number (e.g. 0.90); leave as None to use lambda_R.
+eta_s    = None          # stage total-to-total efficiency [-] or None
+
+n = gamma / (gamma - 1.0)   # isentropic exponent p/T grouping
 
 # --------------------------------------------------------------------------
 # 1) ROTOR-BLADE GAS ANGLES
@@ -73,6 +83,73 @@ V3  = Ca / cos(beta3)
 C3  = Ca / cos(alpha3)
 
 # --------------------------------------------------------------------------
+# 5) NOZZLE THROAT AREA  (using the nozzle loss coefficient lambda_N)
+#    T02 = T01 (no work in the nozzle).  The isentropic static temperature
+#    T2' fixes the static pressure through the nozzle loss:
+#        T2  = T02 - C2^2 / (2 cp)
+#        T2' = T2  - lambda_N * C2^2 / (2 cp)
+#        p01 / p2 = (T01 / T2')^(gamma/(gamma-1))
+#
+#    A convergent nozzle chokes when p2 falls to (or below) the critical
+#    pressure p_c.  If choked, the throat sits at critical (M = 1) conditions;
+#    otherwise the throat equals the nozzle-exit conditions.
+# --------------------------------------------------------------------------
+T02 = T01
+T2  = T02 - C2**2 / (2.0 * cp)
+T2p = T2 - lambda_N * C2**2 / (2.0 * cp)      # isentropic static temperature
+p2  = p01 / (T01 / T2p) ** n                  # nozzle-exit static pressure [bar]
+p01_over_p2 = p01 / p2
+
+# Critical (throat, M=1) conditions, including the nozzle loss up to the throat
+Tc   = T01 * 2.0 / (gamma + 1.0)                       # critical static temp
+p01_over_pc = (1.0 - (1.0 + lambda_N) *
+               (gamma - 1.0) / (gamma + 1.0)) ** (-n)  # critical press. ratio
+pc   = p01 / p01_over_pc                               # critical pressure [bar]
+choked = p2 <= pc
+
+if choked:
+    T_th   = Tc
+    p_th   = pc
+    C_th   = (gamma * R * T_th) ** 0.5        # = local sonic speed (M = 1)
+else:
+    T_th   = T2
+    p_th   = p2
+    C_th   = C2
+rho_th   = p_th * 1e5 / (R * T_th)            # throat density [kg/m3]
+A_throat = m_dot / (rho_th * C_th)            # nozzle throat area [m2]
+
+# --------------------------------------------------------------------------
+# 6) TURBINE-STAGE PRESSURE RATIO  p01 / p03  (needs the rotor loss lambda_R,
+#    or, equivalently, a stage total-to-total efficiency eta_s)
+#
+#    If eta_s is given:  p01/p03 = [1 - dT0s/(eta_s*T01)]^(-gamma/(gamma-1))
+#    Otherwise, from lambda_R:
+#        T3   = T03 - C3^2/(2cp)
+#        T3'  = T3  - lambda_R * V3^2/(2cp)      (rotor isentropic static temp)
+#        p2/p3 = (T2/T3')^(gamma/(gamma-1))      -> static pressure p3
+#        p03   = p3 * (T03/T3)^(gamma/(gamma-1))
+# --------------------------------------------------------------------------
+T03 = T01 - dT0s
+
+if eta_s is not None:
+    p01_over_p03 = (1.0 - dT0s / (eta_s * T01)) ** (-n)
+    p03 = p01 / p01_over_p03
+    eta_tt = eta_s
+    # back out static pressures for completeness
+    T3  = T03 - C3**2 / (2.0 * cp)
+    p3  = p03 / (T03 / T3) ** n
+else:
+    T3   = T03 - C3**2 / (2.0 * cp)
+    T3p  = T3 - lambda_R * V3**2 / (2.0 * cp)
+    p3   = p2 / (T2 / T3p) ** n
+    p03  = p3 * (T03 / T3) ** n
+    p01_over_p03 = p01 / p03
+    # resulting total-to-total isentropic efficiency
+    eta_tt = dT0s / (T01 * (1.0 - (p03 / p01) ** (1.0 / n)))
+
+p01_over_p3 = p01 / p3        # stagnation-to-static (rotor-exit) ratio
+
+# --------------------------------------------------------------------------
 # PRETTY-PRINTED RESULTS
 # --------------------------------------------------------------------------
 line = "=" * 60
@@ -108,6 +185,34 @@ print(f"  {'Degree of reaction':38s} Lambda   = {reaction:7.3f}")
 print(f"  {'Temperature-drop coefficient':38s} psi      = {psi:7.3f}")
 print(f"  {'Stage stagnation temperature drop':38s} dT0s     = {dT0s:7.2f}  K")
 print(f"  {'Power output':38s} P        = {power/1e6:7.3f}  MW")
+print(line)
+
+header("NOZZLE THROAT  &  STAGE PRESSURE RATIO")
+print(f"\nNozzle (station 2), lambda_N = {lambda_N:.2f}")
+print("-" * 60)
+print(f"  {'Nozzle exit velocity':34s} C2          = {C2:8.2f}  m/s")
+print(f"  {'Nozzle exit static temperature':34s} T2          = {T2:8.2f}  K")
+print(f"  {'Nozzle exit static pressure':34s} p2          = {p2:8.4f}  bar")
+print(f"  {'Nozzle static pressure ratio':34s} p01/p2      = {p01_over_p2:8.4f}")
+print(f"  {'Critical (throat) pressure':34s} p_c         = {pc:8.4f}  bar")
+print(f"  {'Nozzle flow is':34s}               {'CHOKED (throat at M=1)' if choked else 'un-choked'}")
+print(f"  {'Throat static temperature':34s} T_th        = {T_th:8.2f}  K")
+print(f"  {'Throat velocity':34s} C_th        = {C_th:8.2f}  m/s")
+print(f"  {'Throat density':34s} rho_th      = {rho_th:8.4f}  kg/m3")
+print(f"  {'NOZZLE THROAT AREA':34s} A_throat    = {A_throat:8.5f}  m2")
+
+if eta_s is not None:
+    src = f"eta_s = {eta_s:.3f} (given)"
+else:
+    src = f"lambda_R = {lambda_R:.2f} (given)"
+print(f"\nStage pressure ratio   [{src}]")
+print("-" * 60)
+print(f"  {'Rotor exit static temperature':34s} T3          = {T3:8.2f}  K")
+print(f"  {'Rotor exit static pressure':34s} p3          = {p3:8.4f}  bar")
+print(f"  {'Stage exit stagnation pressure':34s} p03         = {p03:8.4f}  bar")
+print(f"  {'Stage-to-static pressure ratio':34s} p01/p3      = {p01_over_p3:8.4f}")
+print(f"  {'STAGE PRESSURE RATIO (total)':34s} p01/p03     = {p01_over_p03:8.4f}")
+print(f"  {'Stage total-to-total efficiency':34s} eta_tt      = {eta_tt:8.4f}")
 print(line)
 
 
